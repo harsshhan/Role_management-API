@@ -1,13 +1,18 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class oldData(BaseModel):
+
+class OldData(BaseModel):
     email:Optional[str]=None
     role:Optional[str]=None
 
-class newData(BaseModel):
+class NewData(BaseModel):
     user_id:str
     name:str
     email:str
     role:str
 
+class Task(BaseModel):
+    task_name:str
+    deadline: str
+    assigned_to:str
