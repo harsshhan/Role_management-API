@@ -3,22 +3,24 @@ from typing import Optional
 
 
 class OldData(BaseModel):
-    email:Optional[str]=None
+    email_id:Optional[str]=None
     role:Optional[str]=None
 
 class NewData(BaseModel):
     user_id:str
     name:str
-    email:str
+    email_id:str
     role:str
 
 class Task(BaseModel):
     task_id:str
-    task_name:str
+    task:str
     deadline: str
     assigned_to:str
+    status:str
 
 class EditTask(BaseModel):
-    task_name:Optional[str]=None
+    task:Optional[str]=None
     deadline: Optional[str]=None
     assigned_to:Optional[str]=None
+    status:Optional[str]=None
