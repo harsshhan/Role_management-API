@@ -21,16 +21,18 @@ def update_user(admin_uid,user_id,data:OldData):    #this function is to update 
 
     if admin: #if the admin_id correct then this if statement executes to update the profile data
         if collection.find_one({'user_id':user_id}): #if the user_id exists then it will edit the data
-            if data.email and data.role:
-                collection.update_one({'user_id':user_id},{'$set':dict(data)})
-            elif data.email==None:
-                del data.email
-                collection.update_one({'user_id':user_id},{'$set':dict(data)})   
-            elif data.role==None:
+            if data.role==None or data.role=='string':
                 del data.role
                 collection.update_one({'user_id':user_id},{'$set':dict(data)})
-            else:   #if the user_id does not exists then it will raise an error
+            elif data.email==None or data.email=='string':
+                del data.email
+                collection.update_one({'user_id':user_id},{'$set':dict(data)})   
+            elif data.email and data.role:
+                collection.update_one({'user_id':user_id},{'$set':dict(data)})
+            elif data==[]:   
                 raise HTTPException(status_code=400, detail="Both the fields are Empty")
+        else:   #if the user_id does not exists then it will raise an error
+            raise HTTPException(status_code=401,detail='user_id does not exist')
     else:   # if the admin_id is incorrect it will raise an Error
         raise HTTPException(status_code=401,detail='Admin_id is Wrong')
 
@@ -62,15 +64,19 @@ def create_task(user_id,data:Task):  #task createion
 @app.put('/edit_task/{user_id}/{task_id}')
 def edit_task(user_id,task_id,data:EditTask):
     collection=db.task
-    edit_task=EditTask()
-    if db.users.find_one({'user_id':user_id}):
-        for field_name, field_value in dict(edit_task).items():
-            if field_value is None:
-                del field_name
-                
-        if data.task_name and data.assigned_to and data.deadline:
-            collection.update_one({'task_id':task_id},{'$set':dict(data)})
-        elif data
+    if db.users.find_one({'user_id':user_id}): # checks if the given userid is admin/manager
+        if collection.find_one({'task_id':task_id}):    #checks wherther the task id exists or not
+            dic={}
+            for field_name,field_value in dict(data).items():
+                if field_value is not None and field_value!='string': #add key,value pairs to the dic variable if field_name is not none
+                    dic[field_name]=field_value
+            if dic:
+                collection.update_one({'task_id': task_id}, {'$set': dic})  # updating in the respective task_id
+            else:
+                raise HTTPException(status_code=400, detail='No fields to update')
+              
+        else:
+            raise HTTPException(status_code=404,detail='task_id does not exist')
     else:
         raise HTTPException(status_code=401,detail='Admin/manager id does not exist')
     
@@ -80,7 +86,7 @@ def show_tasks(user_id):
     collection=db.task
     tasks=[]
     if db.users.find_one({'user_id':user_id}):
-        cursor=db.task.find({'assigned_to':'m1'})
+        cursor=collection.find({'assigned_to':user_id})
         for i in cursor:
             task={}
             for key,value in i.items():
@@ -90,3 +96,34 @@ def show_tasks(user_id):
     else:
         raise HTTPException(status_code=401,detail='user_id does not exist')
         
+@app.delete('/tasks/{user_id}/{task_id}')
+def delete_task(user_id,task_id):
+    profile=db.users.find_one({'user_id':user_id})  #checks if the user_id exists
+    task=db.task.find_one({'task_id':task_id})      #checks if the task_id exists
+    if profile:
+        if task:
+            role=profile['role']     #storing the role of given user_id
+
+            #regular user
+            if role=='user':    #if user then they can delete only the task assigned to them
+                if db.task.find_one({'task_id':task_id,'assigned_to':user_id}):
+                        db.task.delete_one({'task_id':task_id})
+                else:
+                    raise HTTPException(status_code=404,detail='You dont have access to delete this task')
+            
+            #manager
+            if role=='manager':
+                if db.users.find_one({"user_id":user_id,'role':{'$in': ['user', 'manager']}}):
+                    db.task.delete_one({'task_id':task_id})
+                else:
+                    raise HTTPException(status_code=404,detail='You dont have access to delete this task')
+                
+            #admin
+            if role=='admin':
+                db.task.delete_one({'task_id':task_id})
+
+        else:
+            raise HTTPException(status_code=401,detail='task_id does not exist')
+        
+    else:
+        raise HTTPException(status_code=401,detail='User_id does not exist')
