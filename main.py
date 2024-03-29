@@ -1,6 +1,6 @@
 from fastapi import FastAPI,HTTPException
 from config.database import db
-from models.model import NewData,OldData,Task
+from models.model import NewData,OldData,Task,EditTask
 
 app=FastAPI()
 
@@ -43,21 +43,37 @@ def delete_user(admin_uid,user_id):
     else:       #else it will raise an error 
         raise HTTPException(status_code=401,detail='Admin_id is wrong')
 
-@app.post('/admin/create_tasks/{admin_uid}')
-def create_task(admin_uid,data:Task):
+@app.post('/create_tasks/{user_id}')
+def create_task(user_id,data:Task):  #task createion 
     collection=db.users
-    for i in collection.find({'user_id':admin_uid}):
-        if i['role']=='admin' or i['role']=='manager':
-            collection=db.task
-            if db.users.find_one({'user_id':data.assigned_to}):
-                collection.insert_one({'task':data.task_name,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':i['name']})
-                break
-            else:
-                raise HTTPException(status_code=401,detail='user_id does not exist')
-                
+    access= collection.count_documents({'user_id': user_id, 'role': {'$in': ['admin', 'manager']}})
+    if access:
+        name=collection.find_one({'user_id':user_id})['name']
+        collection=db.task
+        if db.users.find_one({'user_id':data.assigned_to}):  #if the assigned userid exists then tasks will be added
+            collection.insert_one({'task_id':data.task_id,'task':data.task_name,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':name})
+            
+        else:
+            raise HTTPException(status_code=401,detail='user_id does not exist')
+                     
     else:
         raise HTTPException(status_code=401,detail='admin/manager id does not exist')
-
+    
+@app.put('/edit_task/{user_id}/{task_id}')
+def edit_task(user_id,task_id,data:EditTask):
+    collection=db.task
+    edit_task=EditTask()
+    if db.users.find_one({'user_id':user_id}):
+        for field_name, field_value in dict(edit_task).items():
+            if field_value is None:
+                del field_name
+                
+        if data.task_name and data.assigned_to and data.deadline:
+            collection.update_one({'task_id':task_id},{'$set':dict(data)})
+        elif data
+    else:
+        raise HTTPException(status_code=401,detail='Admin/manager id does not exist')
+    
 
 @app.get('/tasks/{user_id}')
 def show_tasks(user_id):
@@ -65,8 +81,8 @@ def show_tasks(user_id):
     tasks=[]
     if db.users.find_one({'user_id':user_id}):
         cursor=db.task.find({'assigned_to':'m1'})
-        task={}
         for i in cursor:
+            task={}
             for key,value in i.items():
                 task[key]=str(value)
             tasks.append(task)
