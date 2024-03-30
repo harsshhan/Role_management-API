@@ -67,7 +67,7 @@ def create_task(user_id,data:Task):  #task createion
     access= collection.count_documents({'user_id': user_id,})  #checks whether the given user_id available in db
     if access:
         #storing name and role of the assigning user_id
-        name,role=collection.find_one({'user_id':user_id})['name'],collection.find_one({'user_id':user_id})['role'] 
+        assigned_by_name,role=collection.find_one({'user_id':user_id})['name'],collection.find_one({'user_id':user_id})['role'] 
         if db.users.find_one({'user_id':data.assigned_to}): #checks whether the assigned_to user_id is available in the db
             collection=db.task
             if role=='manager': #checks whether role is manager
@@ -79,7 +79,7 @@ def create_task(user_id,data:Task):  #task createion
                         if value is None or value=='string' or value=='':
                             raise HTTPException(status_code=404,detail='Field should not be empty')
                     else:
-                        collection.insert_one({'task_id':data.task_id,'task':data.task,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':name,'status':data.status})
+                        collection.insert_one({'task_id':data.task_id,'task':data.task,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':assigned_by_name,'status':data.status})
             elif role=='user':
                 #checks whether the user assigning the task to him
                 if db.users.find_one({'user_id':data.assigned_to})['user_id']==user_id:  # regular users can assign task only to them
@@ -89,7 +89,7 @@ def create_task(user_id,data:Task):  #task createion
                         if value is None or value=='string' or value=='':
                             raise HTTPException(status_code=404,detail='Field should not be empty')
                     else:
-                        collection.insert_one({'task_id':data.task_id,'task':data.task,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':name,'status':data.status})
+                        collection.insert_one({'task_id':data.task_id,'task':data.task,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':assigned_by_name,'status':data.status})
                 #if user assign task to someone else --> raise an error
                 else:
                     raise HTTPException(status_code=400,detail='You dont have access to assign tasks to admin/manager')
@@ -100,7 +100,7 @@ def create_task(user_id,data:Task):  #task createion
                         if value is None or value=='string' or value=='':
                             raise HTTPException(status_code=404,detail='Field should not be empty')
                 else:
-                    collection.insert_one({'task_id':data.task_id,'task':data.task,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':name,'status':data.status})
+                    collection.insert_one({'task_id':data.task_id,'task':data.task,'deadline':data.deadline,'assigned_to':data.assigned_to,'assigned_by':assigned_by_name,'status':data.status})
                 
         
         else:   #user_id not availabe in db--> raise an error
