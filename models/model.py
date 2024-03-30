@@ -20,7 +20,8 @@ class Task(BaseModel):
     status:str
 
 class EditTask(BaseModel):
-    task:Optional[str]=None
     deadline: Optional[str]=None
-    assigned_to:Optional[str]=None
     status:Optional[str]=None
+
+class UserEditTask(BaseModel):
+    status:str
