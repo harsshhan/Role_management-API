@@ -18,7 +18,7 @@ TaskGuardian is a backend service that manages tasks for users. It provides func
 
 ## API Documentation
 
-For detailed information on available API endpoints and usage, refer to the [API Documentation](docs/API DOCUMENTATION.md).
+For detailed information on available API endpoints and usage, refer to the [API Documentation](docs/API_DOCUMENTATION.md).
 
 ## Configuration
 
